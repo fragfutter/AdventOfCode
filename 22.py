@@ -69,53 +69,8 @@ def print_grid(grid):
         print('')
 
 print_grid(data)
-sys.exit(0)
-
-def move(grid, xa, ya, xb, yb):
-    """move content from a to b"""
-    # test if we can get the node b
-    if xb < 0 or yb < 0:
-        raise IndexError()
-    try:
-        a = grid[xa][ya]
-        b = grid[xb][yb]
-    except IndexError:
-        raise
-    # ok node exists, do they fit?
-    if a[1] > (b[0] - b[1]):
-        raise IndexError()
-    # valid move, execute it
-    result = copy.deepcopy(grid)
-    result[xb][yb][1] += a[1]
-    result[xb][yb][2] = a[2]
-    result[xa][ya][1] = 0
-    result[xa][ya][2] = False
-    return result
-
-
-def moves(steps, grid):
-    steps += 1
-    for x in range(X + 1):
-        for y in range(Y + 1):
-            for xb, yb in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
-                try:
-                    result = move(grid, x, y, xb, yb)
-                    # logging.debug('move (%d, %d) to (%d, %d)', x, y, xb, yb)
-                    yield steps, result
-                except IndexError:
-                    pass
-
-seen = []
-bt = [(0, data)]
-i = 0
-while i < len(bt):
-    steps, grid = bt[i]
-    i += 1
-    if grid[0][0][2]:
-        logging.info('found it %d', steps)
-        break
-    if grid in seen:
-        continue
-    seen.append(grid)
-    bt.extend(moves(steps, grid))
-    logging.debug('i: %d, bt: %d', i, len(bt))
+# solve it by hand.
+# moving the empty space above G => n steps
+# moving both G and empty one space up => 5 steps
+# for the last move only move the G
+# total => n + (X - 1)*5 + 1
