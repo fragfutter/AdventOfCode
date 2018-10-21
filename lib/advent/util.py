@@ -1,4 +1,5 @@
 from itertools import cycle
+from _thread import RLock
 
 
 def pairwise(sequence1, sequence2=None):
