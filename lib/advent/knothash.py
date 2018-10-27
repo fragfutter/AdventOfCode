@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-from advent import Advent
-from advent.knothash import KnotHash, knothash
+from operator import xor
+from functools import reduce
 
 
 """
@@ -146,15 +146,52 @@ encounter.
 """
 
 
-class Day10(Advent):
-    def solve1(self):
-        h = KnotHash(256)
-        lengths = list(map(int, self.data.split(',')))
+class KnotHash(object):
+    stdlengths = [17, 31, 73, 47, 23]
+
+    def __init__(self, size=256):
+        self.size = size
+        self.reg = list(range(size))
+        self.skip = 0
+        self.total = 0
+
+    def hash(self, *lengths):
+        for length in lengths:
+            snip = self.reg[:length]
+            snip.reverse()
+            reg = snip + self.reg[length:]
+            # shift to new starting position
+            s = (length + self.skip) % self.size
+            reg = reg[s:] + reg[:s]
+            self.total += s
+            self.total = self.total % self.size
+            self.skip += 1
+            self.skip = self.skip % self.size
+            self.reg = reg
+
+    def unshift(self):
+        # figure out which register is the start
+        result = self.reg[-self.total:] + self.reg[:self.size - self.total]
+        return result
+
+    def checksum(self):
+        result = self.unshift()
+        return result[0] * result[1]
+
+    def __str__(self):
+        data = self.unshift()
+        block = 0
+        result = []
+        while block < self.size:
+            result.append('%02x' % reduce(xor, data[block:block+16]))
+            block += 16
+        return ''.join(result)
+
+
+def knothash(string):
+    h = KnotHash()
+    lengths = list(map(ord, string))
+    lengths.extend(h.stdlengths)
+    for i in range(64):
         h.hash(*lengths)
-        return h.checksum()
-
-    def solve2(self):
-        return knothash(self.data)
-
-
-Day10.main()
+    return str(h)
