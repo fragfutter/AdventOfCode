@@ -80,13 +80,13 @@ class Day03(Advent):
                 return sum([abs(x) for x in t.position])
             grid[t.position] = t.steps
             if t.left() not in grid:
-                t.turn()
+                t.turn_left()
             t.walk()
 
     def solve2(self):
         grid = {(0, 0): 1}
         t = Turtle()
-        t.turn()
+        t.turn_left()
         t.walk()
         while True:
             value = sum([grid.get(n, 0) for n in t.neighbours()])
@@ -94,7 +94,7 @@ class Day03(Advent):
                 return value
             grid[t.position] = value
             if t.left() not in grid:
-                t.turn()
+                t.turn_left()
             t.walk()
 
 
