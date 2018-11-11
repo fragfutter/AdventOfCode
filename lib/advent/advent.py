@@ -80,21 +80,16 @@ class Advent(object):
                 self.data = self.data.strip()
 
     def solver(self):
-        raise NotImplementedError()
+        """implement this to return a tuple with both solutions"""
+        return self.solve1(), self.solve2()
 
     def solve1(self):
-        raise NotImplementedError()
+        return None
 
     def solve2(self):
-        raise NotImplementedError()
+        return None
 
     def solve(self):
-        try:
-            s1, s2 = self.solver()
-        except NotImplementedError:
-            pass
-        if not s1:  # split out to if to not raise nested exceptions
-            s1 = self.solve1()
-            s2 = self.solve2()
+        s1, s2 = self.solver()
         print('solution 1: %s' % s1)
         print('solution 2: %s' % s2)
