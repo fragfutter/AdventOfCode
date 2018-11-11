@@ -92,6 +92,8 @@ class Advent(object):
         try:
             s1, s2 = self.solver()
         except NotImplementedError:
+            pass
+        if not s1:  # split out to if to not raise nested exceptions
             s1 = self.solve1()
             s2 = self.solve2()
         print('solution 1: %s' % s1)
