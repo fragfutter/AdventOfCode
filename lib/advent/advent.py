@@ -52,6 +52,16 @@ class Advent(object):
             self.data = self.data.split('\n')
         if self.matrix:
             self.data = [self.seperator.split(line) for line in self.data]
+        if self.strip:
+            if self.matrix:
+                self.data = [
+                    [x.strip() for x in row]
+                    for row in self.data
+                ]
+            elif self.lines:
+                self.data = [x.strip() for x in self.data]
+            else:
+                self.data = self.data.strip()
         if self.conversion:
             if self.matrix:
                 self.data = [
@@ -65,17 +75,24 @@ class Advent(object):
 
     def load(self, filename):
         with open(filename) as fh:
-            self.data = fh.read().strip()
+            self.data = fh.read()
+            if self.strip:
+                self.data = self.data.strip()
 
-    def solver(self, offset):
-        pass
+    def solver(self):
+        raise NotImplementedError()
 
     def solve1(self):
-        pass
+        raise NotImplementedError()
 
     def solve2(self):
-        pass
+        raise NotImplementedError()
 
     def solve(self):
-        print('solution 1: %s' % self.solve1())
-        print('solution 2: %s' % self.solve2())
+        try:
+            s1, s2 = self.solver()
+        except NotImplementedError:
+            s1 = self.solve1()
+            s2 = self.solve2()
+        print('solution 1: %s' % s1)
+        print('solution 2: %s' % s2)
