@@ -83,45 +83,32 @@ multiple bridges of the longest length, pick the strongest one.  """
 
 
 class Bridge(object):
-    components = []
+    components = []  # all components
 
-    def __init__(self, elements, attach=None):
-        self.elements = deepcopy(elements)
-        if attach:
-            self.elements.append(attach)
-        self.end = self.find_end()
-        self.length = self._length()
-        self.strength = self._strength()
-
-    def find_end(self):
-        result = 0
-        for e in self.elements:
-            if e[0] == result:
-                result = e[1]
-            elif e[1] == result:
-                result = e[0]
-            else:
-                raise AssertionError('one end has to match')
-        return result
-
-    def _strength(self):
-        return sum([sum(x) for x in self.elements])
-
-    def _length(self):
-        return len(self.elements)
+    def __init__(self):
+        self.elements = []
+        self.end = 0
+        self.strength = 0
+        self.length = 0
 
     def possibilities(self):
         """yield components that can be attached and the dangling port"""
-        for c in self.components:
-            if self.end in c and c not in self.elements:
-                yield Bridge(self.elements, c)
+        for idx, c in enumerate(self.components):
+            if idx not in self.elements and self.end in c:
+                bridge = Bridge()
+                bridge.elements = self.elements[:] + [idx]
+                bridge.length = self.length + 1
+                bridge.strength = self.strength + sum(c)
+                if c[0] == self.end:
+                    bridge.end = c[1]
+                else:
+                    bridge.end = c[0]
+                yield bridge
 
     def recurse(self):
-        if self.elements:
-            yield self
         for bridge in self.possibilities():
-            for b in bridge.recurse():
-                yield b
+            yield bridge
+            yield from bridge.recurse()  # noqa
 
     def __str__(self):
         return '<Bridge %s>' % ' -- '.join(map(str, self.elements))
@@ -139,7 +126,7 @@ class Day24(Advent):
         Bridge.components = self.data
 
     def solver(self):
-        bridge = Bridge([])
+        bridge = Bridge()
         s1 = bridge
         s2 = bridge
         for b in bridge.recurse():
