@@ -1,5 +1,5 @@
 from itertools import cycle
-from _thread import RLock
+from collections import defaultdict
 
 
 def pairwise(sequence1, sequence2=None):
@@ -37,3 +37,14 @@ def duplicates(sequence, values=True):
     if not values:
         return True  # values are not required
     return filter(lambda x: x not in s, sequence)
+
+
+def histogram(sequence):
+    """generate a histogram counting the occurance of each value
+
+    [4, 1, 2, 1, 3, 1, 4] => {1: 3, 2: 1, 3: 2, 4: 2}
+    """
+    result = defaultdict(lambda: 0)
+    for s in sequence:
+        result[s] += 1
+    return result
