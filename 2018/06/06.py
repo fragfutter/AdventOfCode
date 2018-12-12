@@ -74,82 +74,64 @@ in this example, the size of the largest area is 17.
 
 What is the size of the largest area that isn't infinite?
 
+
+--- Part Two ---
+On the other hand, if the coordinates are safe, maybe the best you can do is
+try to find a region near as many coordinates as possible.
+
+For example, suppose you want the sum of the Manhattan distance to all of the
+coordinates to be less than 32. For each location, add up the distances to all
+of the given coordinates; if the total of those distances is less than 32, that
+location is within the desired region. Using the same coordinates as above, the
+resulting region looks like this:
+
+  ..........
+  .A........
+  ..........
+  ...###..C.
+  ..#D###...
+  ..###E#...
+  .B.###....
+  ..........
+  ..........
+  ........F.
+
+In particular, consider the highlighted location 4,3 located at the top middle
+of the region. Its calculation is as follows, where abs() is the absolute value
+function:
+
+  Distance to coordinate A: abs(4-1) + abs(3-1) =  5
+  Distance to coordinate B: abs(4-1) + abs(3-6) =  6
+  Distance to coordinate C: abs(4-8) + abs(3-3) =  4
+  Distance to coordinate D: abs(4-3) + abs(3-4) =  2
+  Distance to coordinate E: abs(4-5) + abs(3-5) =  3
+  Distance to coordinate F: abs(4-8) + abs(3-9) = 10
+  Total distance: 5 + 6 + 4 + 2 + 3 + 10 = 30
+
+Because the total distance to all coordinates (30) is less than 32, the
+location is within the region.
+
+This region, which also includes coordinates D and E, has a total size of 16.
+
+Your actual region will need to be much larger than this example, though,
+instead including all locations with a total distance of less than 10000.
+
+What is the size of the region containing all locations which have a total
+distance to all given coordinates of less than 10000?
+
 """
 
 
 class Point(object):
-    _name = 1
-
-    def __init__(self, x, y, distance, name=None):
+    def __init__(self, x, y):
         self.x = x
         self.y = y
-        if name is None:
-            self.__class__._name += 1
-            name = self.__class__._name
-        self.name = name
-        self.distance = distance
 
     def __repr__(self):
-        return '(name=%s, x=%s, y=%s, d=%s)' % (self.name, self.x, self.y, self.distance)
+        return '<Point %s, %s>' % (self.x, self.y)
 
-    @property
-    def coordinates(self):
-        return (self.x, self.y)
-
-    def neighbours(self):
-        d = self.distance + 1
-        yield Point(self.x + 1, self.y, d, self.name)
-        yield Point(self.x - 1, self.y, d, self.name)
-        yield Point(self.x, self.y + 1, d, self.name)
-        yield Point(self.x, self.y - 1, d, self.name)
-
-
-class Grid(object):
-    def __init__(self):
-        self.data = {}
-
-    def name(self, coordinates):
-        point = self.data.get(coordinates, None)
-        if point:
-            return point.name
-        else:
-            return None
-
-    def distance(self, coordinates):
-        point = self.data.get(coordinates, None)
-        if point:
-            return point.distance
-        else:
-            return None
-
-    def better(self, point):
-        existing = self.data.get(point.coordinates, None)
-        if not existing:
-            return True
-        if existing.distance > point.distance:
-            return True
-        if existing.distance < point.distance:
-            return False
-        assert(existing.distance == point.distance)
-        if existing.name == point.name:
-            return False  # same owner
-        if existing.name == 0:
-            return False  # already tied
-        # tied, wipe out
-        tie = Point(point.x, point.y, point.distance, 0)
-        self.set(tie)
-        return False
-
-    def set(self, point):
-        self.data[point.coordinates] = point
-
-    def areas(self):
-        result = defaultdict(lambda: [])
-        for point in self.data.values():
-            if point.name == 0:
-                continue
-            result[point.name].append(point)
-        return result
+    def distance(self, other):
+        return abs(self.x - other.x) + abs(self.y - other.y)
 
 
 class Day(Advent):
@@ -158,34 +140,43 @@ class Day(Advent):
     @classmethod
     def conversion(cls, line):
         x, y = tuple(map(int, line.split(', ')))
-        return Point(x, y, 0)
+        return Point(x, y)
 
     def prepare(self):
         super(Day, self).prepare()
-
-    def solve1(self):
         # extract boundaries
         left = min([p.x for p in self.data])
         right = max([p.x for p in self.data])
         top = min([p.y for p in self.data])
         bottom = max([p.y for p in self.data])
-        print(left, right, top, bottom)
-        grid = Grid()
-        queue = list(self.data)
-        while queue:
-            p = queue.pop(0)
-            if p.x < left or p.x > right or p.y < top or p.y > bottom:
-                continue  # infinity point
-            if grid.better(p):
-                grid.set(p)
-                # add neighbours to queue, they have distance + 1
-                for n in p.neighbours():
-                    queue.append(n)
-        # find area sizes
-        return max(len(points) for points in grid.areas().values())
+        grid = {}
+        for x in range(left, right+1):
+            for y in range(top, bottom+1):
+                reference = Point(x, y)
+                grid[(x, y)] = []
+                for point in self.data:
+                    grid[(x, y)].append((point, reference.distance(point)))
+        self.grid = grid
+
+    def solve1(self):
+        # determine areas
+        areas = defaultdict(lambda: 0)
+        for coordinates, points in self.grid.items():
+            points = sorted(points, key=lambda x: x[1])
+            if points[0][1] == points[1][1]:
+                # tied, ignore
+                continue
+            areas[points[0][0]] += 1
+        return max(areas.values())
 
     def solve2(self):
-        pass
+        limit = 10000
+        size = 0
+        for coordinates, points in self.grid.items():
+            total_distance = sum([distance for point, distance in points])
+            if total_distance < limit:
+                size += 1
+        return size
 
 
 Day.main()
