@@ -195,11 +195,22 @@ class Day(Advent):
     def _solver(self, count):
         offset = 0
         state = self.state[:]
-        for i in range(count):
+        last = state[:]
+        i = count
+        while i > 0:
             if i % 10000 == 0:
-                print(i)
+                print(i, len(state), offset)
+                self.dumpstate(state)
             x, state = self.mutate(state)
             offset += x
+            i -= 1
+            if state != last:
+                last = state[:]
+            else:
+                # we got a stable pattern moving with offset x
+                # along.
+                offset += x*i
+                break
         result = 0
         for i, v in enumerate(state):
             result += (i - offset) * v
