@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-import re
-import string
+from itertools import cycle
+from collections import defaultdict, deque
 
 from advent import Advent
 
@@ -80,6 +80,12 @@ Here are a few more examples:
 
 What is the winning Elf's score?
 
+
+--- Part Two ---
+Amused by the speed of your answer, the Elves are curious:
+
+What would the new winning Elf's score be if the number of the last marble were
+100 times larger?
 """
 
 
@@ -92,11 +98,26 @@ class Day(Advent):
         self.players = int(data[0])
         self.value = int(data[6])
 
+    def _solve(self, value):
+        circle = deque()
+        circle.append(0)
+        player = cycle(list(range(self.players)))
+        score = defaultdict(lambda: 0)
+        for marble in range(1, value + 1):
+            if marble % 23 == 0:
+                circle.rotate(-7)
+                score[next(player)] += (marble + circle.pop())
+            else:
+                circle.rotate(2)
+                circle.append(marble)
+                next(player)
+        return max(score.values())
+
     def solve1(self):
-        pass
+        return self._solve(self.value)
 
     def solve2(self):
-        pass
+        return self._solve(self.value * 100)
 
 
 Day.main()
