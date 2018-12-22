@@ -425,13 +425,98 @@ combos = [
 ]
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger()
 
 
 class State(namedtuple('State', ['time', 'gear', 'x', 'y'])):
     def pos(self):
         return (self.x, self.y)
+
+
+class Cave(object):
+    def __init__(self, depth, target):
+        self.depth = depth
+        self.target = target
+        e, t = self.erosion(0)
+        self.data = {
+            (0, 0): (0, e, t)
+        }  # (x, y) => (geo, ero, rocktype
+        self.maxx = 0
+        self.maxy = 0
+        p = int(max(self.target) * 1.5)
+        self.extend(p, p)
+
+
+    def fill(self, topleft, bottomright):
+        """calculate values for given area.
+        Assumes that values to the left and above already exist
+        """
+        tx, ty = topleft
+        bx, by = bottomright
+        for y in range(ty, by + 1):
+            for x in range(tx, bx + 1):
+                idx = self.geoindex(x, y)
+                ero, typ = self.erosion(idx)
+                self.data[(x, y)] = (idx, ero, typ)
+
+    def extend(self, x, y):
+        """
+        +----+---+
+        |....| A |
+        +----+---+
+        | B  | C |
+        +----+---+
+        """
+        log.debug('extending from (%d, %d) to (%d, %d)',
+                  self.maxx, self.maxy, x, y)
+        # first fill A
+        if x > self.maxx:
+            self.fill((self.maxx, 0), (x, self.maxy))
+        # next B
+        if y > self.maxy:
+            self.fill((0, self.maxy), (self.maxx, y))
+        # and now C
+        if x > self.maxx and y > self.maxy:
+            self.fill((self.maxx, self.maxy), (x, y))
+        self.maxx = max(self.maxx, x)
+        self.maxy = max(self.maxy, y)
+
+    def rocktype(self, x, y):
+        if x > self.maxx or y > self.maxy:
+            self.extend(x, y)
+        _, _, result = self.data[(x, y)]
+        return result
+
+    def erosion(self, geoindex):
+        result = (geoindex + self.depth) % 20183
+        rocktype = result % 3
+        return result, rocktype
+
+    def geoindex(self, x, y):
+        if (x, y) == self.target:
+            return 0
+        if x == 0:
+            return y * 48271
+        if y == 0:
+            return x * 16807
+        geo_left, ero_left, _ = self.data[(x - 1, y)]
+        geo_up, ero_up, _ = self.data[(x, y - 1)]
+        return ero_left * ero_up
+
+    def dump(self):
+        t = {
+            ROCKY: '.',
+            WET: '=',
+            NARROW: '|',
+        }
+        for y in range(self.maxy + 1):
+            for x in range(self.maxx + 1):
+                if (x, y) == self.target:
+                    print('T', end='')  # noqa
+                else:
+                    print(t[self.rocktype(x, y)], end='')  # noqa
+            print()
 
 
 class Day(Advent):
@@ -442,43 +527,21 @@ class Day(Advent):
         self.depth = int(self.data[0].split(': ')[1])
         self.target = tuple(
             [int(x) for x in self.data[1].split(': ')[1].split(',')])
-
-    @lru_cache(maxsize=None)
-    def geoindex(self, x, y):
-        if (x, y) == self.target:
-            return 0
-        if x == 0:
-            return y * 48271
-        if y == 0:
-            return x * 16807
-        return self.erosion(x - 1, y) * self.erosion(x, y - 1)
-
-    @lru_cache(maxsize=None)
-    def erosion(self, x, y):
-        result = self.geoindex(x, y) + self.depth
-        return result % 20183
-
-    @lru_cache(maxsize=None)
-    def rocktype(self, x, y):
-        return self.erosion(x, y) % 3
-
-    def dump(self):
-        t = {
-            ROCKY: '.',
-            WET: '=',
-            NARROW: '|',
-        }
-        for y in range(16):
-            for x in range(16):
-                print(t[self.rocktype(x, y)], end='')  # noqa
-            print()
+        self.cave = Cave(self.depth, self.target)
 
     def solve1(self):
+        cave = Cave(510, (10, 10))
+        assert(cave.rocktype(0, 0) == ROCKY)
+        assert(cave.rocktype(1, 0) == WET)
+        assert(cave.rocktype(0, 1) == ROCKY)
+        assert(cave.rocktype(1, 1) == NARROW)
+        assert(cave.rocktype(10, 10) == ROCKY)
+
         tx, ty = self.target
         result = 0
         for x in range(tx + 1):
             for y in range(ty + 1):
-                result += self.rocktype(x, y)
+                result += self.cave.rocktype(x, y)
         return result
 
     def neighbours(self, x, y):
@@ -490,59 +553,47 @@ class Day(Advent):
             yield (x, y - 1)
 
     def options(self, state):
-        """yield neighbours, the time it takes and the gear"""
-        rtype = self.rocktype(state.x, state.y)
+        """yield neighbours, which we could enter with current gear"""
+        rtype = self.cave.rocktype(state.x, state.y)
         for nx, ny in self.neighbours(state.x, state.y):
-            nrtype= self.rocktype(nx, ny)
+            nrtype= self.cave.rocktype(nx, ny)
             if (nrtype, state.gear) in combos:
                 yield State(state.time + 1, state.gear, nx, ny)
-                continue  # keeping gear is alweay the fastest
-            for ngear in (CLIMB, TORCH, NAKED):
-                if (rtype, ngear) in combos and \
-                        (nrtype, ngear) in combos:
-                    # change equipment and move, 7 + 1 minute
-                    yield State(state.time + 8, ngear, nx, ny)
 
     def solve2(self):
-        worst = sum(self.target) * 8  # change gear on every step, plus step
+        """
+        build a graph from the start. adding nodes containining the time to
+        reach them from the start.
+        maintain a priority queue of the leaf nodes (heap)
+        take the nearest leaf, expand its options and add them to queue.
+        """
+        # intitial state, entrance with a torch in our hand
         state = State(time=0, gear=TORCH, x=0, y=0)
-        seen = {state.pos(): [state]}
-        heap = []
-        heappush(heap, state)
+        heap = [state]
+        best = {}  # (x, y, gear) => minutes
         while heap:
-            log.debug('----------------')
-            log.debug('heap %s', heap)
-            log.debug('seen %s', seen)
             state = heappop(heap)
-            log.debug('popped state %s', state)
-            if state.pos() == self.target:
-                log.info('reached target %s', state)
-                if state.gear == TORCH:
-                    return state.time
-                else:
-                    return state.time + 7
-            for option in self.options(state):
-                if option in heap:
-                    log.debug('ignoring (already in heap) %s', option)
-                    continue
-                try:
-                    for s in seen[option.pos()]:
-                        time = option.time
-                        if option.gear != s.gear:
-                            # add time it takes to switch gear
-                            time += 7
-                        if time < s.time:
-                            break
-                            # found a faster way
-                    else:
-                        log.debug('ignoring (better known) %s', option)
-                        break  # not a better option
-                except KeyError:
-                    # no previous
-                    seen[option.pos()] = [option]
-                if option.time <= worst:
-                    log.debug('adding %s', option)
-                    heappush(heap, option)
+            if (state.x, state.y) == self.target and state.gear == TORCH:
+                # if gear is not a torch, there will be another leaf
+                # that already added the seven minutes to switch gear
+                return state.time
+            key = (state.x, state.y, state.gear)
+            rocktype = self.cave.rocktype(state.x, state.y)
+            if key in best and best[key] <= state.time:
+                continue  # better way already known
+            best[key] = state.time  # remember this solution
+            # changing gear adds seven minutes
+            for gear in TORCH, CLIMB, NAKED:
+                if gear == state.gear:
+                    continue  # thats's the current gear, already in heap
+                    # but would not hurt, it's simpy seven minutes slower
+                if (rocktype, gear) in combos:
+                    # changing to this gear is allowed, takes seven minutes
+                    nstate = State(state.time + 7, gear=gear, x=state.x, y=state.y)
+                    heappush(heap, nstate)
+            # movement adds one minute
+            for o in self.options(state):
+                heappush(heap, o)
 
 
 Day.main()
