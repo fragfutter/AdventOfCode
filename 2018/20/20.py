@@ -224,7 +224,7 @@ class Maze(object):
                 pos = Position(x, y)
                 neighbours = self.rooms[pos]
                 if x == min_x:
-                    print('#', end='')  # noqa
+                    print('#', end='')
                 if Position(x, y + 1) in neighbours:
                     print('-', end='')
                 else:
@@ -265,9 +265,6 @@ class Maze(object):
             for n in self.rooms[pos]:
                 heappush(heap, (distance + 1, n))
         return result
-
-
-
 
 
 def walker(maze, pos, steps):
