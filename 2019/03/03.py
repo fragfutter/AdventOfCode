@@ -115,19 +115,17 @@ class Day(Advent):
         super(Day, self).prepare()
         self.a = self.trace(self.data[0])
         self.b = self.trace(self.data[1])
+        self.cross = self.a.keys() & self.b.keys()
 
     def trace(self, line):
         result = {}
         total = 0
         pos = Point(0, 0)
         for d, steps in line:
-            while steps > 0:
+            for _ in range(steps):
                 pos = getattr(pos, d)()
-                steps -= 1
                 total += 1
-                if pos in result:
-                    continue
-                else:
+                if pos not in result:
                     result[pos] = total
         return result
 
@@ -135,24 +133,22 @@ class Day(Advent):
         print('searching cross')
         zero = Point(0, 0)
         result = None
-        for k in self.a:
-            if k in self.b:
-                d = zero.distance(k)
-                if result is None:
-                    result = d
-                elif d < result:
-                    result = d
+        for k in self.cross:
+            d = zero.distance(k)
+            if result is None:
+                result = d
+            elif d < result:
+                result = d
         return result
 
     def solve2(self):
         result = None
-        for k in self.a:
-            if k in self.b:
-                delay = self.a[k] + self.b[k]
-                if result is None:
-                    result = delay
-                elif delay < result:
-                    result = delay
+        for k in self.cross:
+            delay = self.a[k] + self.b[k]
+            if result is None:
+                result = delay
+            elif delay < result:
+                result = delay
         return result
 
 
