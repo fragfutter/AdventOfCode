@@ -3,7 +3,7 @@
 import re
 from queue import Queue
 from advent import Advent
-from advent.intcode import Intcode
+from advent.intcode import runit
 
 """
 --- Day 5: Sunny with a Chance of Asteroids ---
@@ -113,20 +113,11 @@ class Day(Advent):
         super(Day, self).prepare()
         self.data = self.data[0]
 
-    def execute(self, value):
-        input_ = Queue()
-        output = Queue()
-        input_.put(value)
-        pc = Intcode(self.data, input_, output)
-        pc.start()
-        pc.join()
-        return pc.last_output
-
     def solve1(self):
-        return self.execute(1)
+        return runit(self.data, 1)
 
     def solve2(self):
-        return self.execute(5)
+        return runit(self.data, 5)
 
 
 Day.main()
