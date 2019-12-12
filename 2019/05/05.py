@@ -1,6 +1,7 @@
 #!/usr/bin/pypy3
 
 import re
+from queue import Queue
 from advent import Advent
 from advent.intcode import Intcode
 
@@ -112,21 +113,20 @@ class Day(Advent):
         super(Day, self).prepare()
         self.data = self.data[0]
 
-    def solve1(self):
-        pc = Intcode(self.data, callback=lambda: 1)
-        try:
-            pc.run()
-        except StopIteration:
-            pass
+    def execute(self, value):
+        input_ = Queue()
+        output = Queue()
+        input_.put(value)
+        pc = Intcode(self.data, input_, output)
+        pc.start()
+        pc.join()
         return pc.last_output
 
+    def solve1(self):
+        return self.execute(1)
+
     def solve2(self):
-        pc = Intcode(self.data, callback=lambda: 5)
-        try:
-            pc.run()
-        except StopIteration:
-            pass
-        return pc.last_output
+        return self.execute(5)
 
 
 Day.main()
