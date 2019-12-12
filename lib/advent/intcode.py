@@ -1,11 +1,7 @@
-#!/usr/bin/pypy3
-
-from advent import Advent
 import re
 import operator
-
-"""
-"""
+from threading import Thread
+import logging
 
 POSITION_MODE = 0
 IMMEDIATE_MODE = 1
@@ -21,8 +17,9 @@ OP_LESS = 7
 OP_EQUAL = 8
 
 
-class Intcode(object):
-    def __init__(self, data, callback=None):
+class Intcode(Thread):
+    def __init__(self, data, input_, output, name=None):
+        super(Intcode, self).__init__(name=name)
         self.ops = {
             OP_ADD: (operator.add, 2),
             OP_MULT: (operator.mul, 2),
@@ -37,7 +34,8 @@ class Intcode(object):
 
         self.data = data[:]
         self.idx = 0
-        self.callback = callback
+        self.input_ = input_
+        self.output = output
         self.last_output = None
 
     def read(self):
@@ -75,17 +73,23 @@ class Intcode(object):
             self.write(result)
 
     def run(self):
-        while True:
-            self.step()
+        try:
+            while True:
+                self.step()
+        except StopIteration:
+            logging.debug('finished')
+            pass
 
     def op_input(self):
-        # expect use input
-        value = self.callback()
-        return value
+        logging.debug('waiting for input')
+        result = self.input_.get()
+        logging.debug('got input %s', result)
+        return result
 
     def op_output(self,  value):
-        print('output: %s' % value)
+        logging.debug('output %s', value)
         self.last_output = value
+        self.output.put(value)
 
     def op_jump_true(self, value, target):
         if value != 0:
