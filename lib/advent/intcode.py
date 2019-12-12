@@ -1,10 +1,14 @@
 import re
 import operator
 from threading import Thread
+from queue import Queue
+from collections import defaultdict
 import logging
+
 
 POSITION_MODE = 0
 IMMEDIATE_MODE = 1
+RELATIVE_MODE = 2
 
 OP_ADD = 1
 OP_MULT = 2
@@ -15,6 +19,7 @@ OP_JUMP_TRUE = 5
 OP_JUMP_FALSE = 6
 OP_LESS = 7
 OP_EQUAL = 8
+OP_RELBASE = 9
 
 
 class Intcode(Thread):
@@ -30,24 +35,44 @@ class Intcode(Thread):
             OP_JUMP_FALSE: (self.op_jump_false, 2),
             OP_LESS: (lambda a, b: int(a < b), 2),
             OP_EQUAL: (lambda a, b: int(a == b), 2),
+            OP_RELBASE: (self.op_relbase, 1),
         }
 
-        self.data = data[:]
+        self.data = defaultdict(lambda: 0, enumerate(data))
         self.idx = 0
         self.input_ = input_
         self.output = output
         self.last_output = None
+        self.relative_base = 0
 
-    def read(self):
-        """read current memory cell and advance by one"""
+    def read(self, mode=None):
+        """read current memory cell and advance by one,
+        transform value according to mode"""
         result = self.data[self.idx]
         self.idx += 1
-        return result
+        if mode is None:
+            return result
+        if mode == POSITION_MODE:
+            return self.data[result]
+        if mode == IMMEDIATE_MODE:
+            return result
+        if mode == RELATIVE_MODE:
+            return self.data[self.relative_base + result]
+        raise Exception('unknown mode')
 
-    def write(self, value):
+
+    def write(self, value, mode=None):
         """read current memory cell as target address
         and store value there"""
-        address = self.read()
+        address = self.read(None)
+        if mode is None:
+            pass
+        elif mode == POSITION_MODE:
+            pass
+        elif mode == IMMEDIATE_MODE:
+            pass
+        elif mode == RELATIVE_MODE:
+            address = self.relative_base + address
         self.data[address] = value
 
     def step(self):
@@ -63,14 +88,11 @@ class Intcode(Thread):
         for i in range(arg_count):
             mode = v % 10
             v = int(v / 10)
-            register = self.read()
-            if mode == POSITION_MODE:
-                args.append(self.data[register])
-            else:
-                args.append(register)
+            args.append(self.read(mode))
         result = func(*args)
         if result is not None:
-            self.write(result)
+            mode = v % 10
+            self.write(result, mode)
 
     def run(self):
         try:
@@ -101,3 +123,17 @@ class Intcode(Thread):
 
     def op_stop(self):
         raise StopIteration()
+
+    def op_relbase(self, value):
+        self.relative_base += value
+
+
+def runit(data, *values):
+    input_ = Queue()
+    for v in values:
+        input_.put(v)
+    output = Queue()
+    pc = Intcode(data, input_, output)
+    pc.start()
+    pc.join()
+    return pc.last_output
