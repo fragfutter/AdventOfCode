@@ -1,6 +1,6 @@
 import re
 import operator
-from threading import Thread
+from threading import Thread, Event
 from queue import Queue
 from collections import defaultdict
 import logging
@@ -44,6 +44,7 @@ class Intcode(Thread):
         self.output = output
         self.last_output = None
         self.relative_base = 0
+        self.waiting_for_input = Event()
 
     def read(self, mode=None):
         """read current memory cell and advance by one,
@@ -104,6 +105,7 @@ class Intcode(Thread):
 
     def op_input(self):
         logging.debug('waiting for input')
+        self.waiting_for_input.set()
         result = self.input_.get()
         logging.debug('got input %s', result)
         return result
