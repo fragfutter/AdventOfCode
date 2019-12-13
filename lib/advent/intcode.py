@@ -38,7 +38,8 @@ class Intcode(Thread):
             OP_RELBASE: (self.op_relbase, 1),
         }
 
-        self.data = defaultdict(lambda: 0, enumerate(data))
+        # self.data = defaultdict(lambda: 0, enumerate(data))
+        self.data = data[:]
         self.idx = 0
         self.input_ = input_
         self.output = output
@@ -49,7 +50,10 @@ class Intcode(Thread):
     def read(self, mode=None):
         """read current memory cell and advance by one,
         transform value according to mode"""
-        result = self.data[self.idx]
+        try:
+            result = self.data[self.idx]
+        except IndexError:
+            result = 0  # uninitialized memory cells are always zero
         self.idx += 1
         if mode is None:
             return result
@@ -66,15 +70,16 @@ class Intcode(Thread):
         """read current memory cell as target address
         and store value there"""
         address = self.read(None)
-        if mode is None:
-            pass
-        elif mode == POSITION_MODE:
-            pass
-        elif mode == IMMEDIATE_MODE:
-            pass
-        elif mode == RELATIVE_MODE:
+        if mode == RELATIVE_MODE:
             address = self.relative_base + address
-        self.data[address] = value
+        try:
+            self.data[address] = value
+        except IndexError:
+            # need to increase memory, pad with zeros
+            while len(self.data) <= address:
+                # we extend in blocks of 100 cells
+                self.data.extend([0, ] * 100)
+            self.data[address] = value
 
     def step(self):
         """decode current register as instruction
@@ -83,12 +88,12 @@ class Intcode(Thread):
         result"""
         v = self.read()
         op = v % 100
-        v = int(v / 100)
+        v = v // 100
         func, arg_count = self.ops[op]
         args = []
         for i in range(arg_count):
             mode = v % 10
-            v = int(v / 10)
+            v = v // 10
             args.append(self.read(mode))
         result = func(*args)
         if result is not None:
