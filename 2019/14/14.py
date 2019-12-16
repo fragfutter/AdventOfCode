@@ -107,7 +107,7 @@ class Day(Advent):
         requests = [(1, 'FUEL')]
         pantry = defaultdict(lambda: 0)
         while requests:
-            ore += stir(pantry, requests)
+            ore += self.stir(pantry, requests)
         self.minimum_ore = ore
         return ore
 
@@ -115,34 +115,16 @@ class Day(Advent):
     def solve2(self):
         fuel = 0
         ore = 1000000000000
-        required = []
+        requests = []
         pantry = defaultdict(lambda: 0)
         while ore > self.minimum_ore:
-            if not required:
+            if not requests:
                 # speed up, try to consume half the ore left
-                required.append((ore // (self.minimum_ore * 2) + 1, 'FUEL'))
-            wanted, ingredient = required.pop(0)
-            # ore falls from heaven
-            if ingredient == 'ORE':
-                ore -= wanted
-                continue
-            if ingredient == 'FUEL':
-                fuel += wanted
-            if pantry[ingredient] >= wanted:
-                # consume pantry
-                pantry[ingredient] -= wanted
-                continue
-            # not enough in the pantry
-            # consume what is there
-            wanted -= pantry[ingredient]
-            pantry[ingredient] = 0
-            # produce what is missing
-            recipe = self.cookbook(ingredient)
-            scale = (wanted - 1) // recipe[0][0] + 1  # scale up
-            pantry[ingredient] = recipe[0][0] * scale - wanted  # store leftover
-            # add required stuff
-            for source_amount, source_ingredient in recipe[1:]:
-                required.append((source_amount * scale, source_ingredient))
+                requests.append((ore // (self.minimum_ore * 2) + 1, 'FUEL'))
+            # take a peak if we produce fuel and remember it
+            if requests[0][1] == 'FUEL':
+                fuel += requests[0][0]
+            ore -= self.stir(pantry, requests)
         return fuel
 
 
