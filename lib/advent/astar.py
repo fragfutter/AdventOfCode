@@ -2,7 +2,21 @@ from math import sqrt
 
 
 class Node(object):
-    """a node of a graph"""
+    """a node of a graph.
+    property neighbours must yield all known neigbours
+
+    function weight(other) must return the cost to reach neighbour other
+
+    function distance(other) calculate (heuristic) distance to other node
+
+    the properties parent, cost, estimate are set during astar search
+    """
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.cost = 0
+        self.parent = None
 
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y
@@ -12,9 +26,13 @@ class Node(object):
         """yield all neighbour nodes"""
         pass
 
+    def weight(self, other):
+        """exact cost to travel to neighbour other"""
+        return 1
+
     def distance(self, other):
-        """distance to other node"""
-        pass
+        """distance to other node, a heuristic"""
+        return self.distance_manhatten(other)
 
     def distance_manhatten(self, other):
         return abs(self.x - other.x) + abs(self.y - other.y)
@@ -33,13 +51,13 @@ class PriorityQueue(object):
     def __init__(self):
         self.data = []
 
-    def push(self, node, meta):
-        """add node and it's associated metadata"""
-        self.data.append((node, meta))
+    def push(self, node):
+        """add node"""
+        self.data.append(node)
 
     def pop(self):
         """remove and return node with lowest weight"""
-        result = min(self.data, key=lambda node, meta: meta.estimate)
+        result = min(self.data, key=lambda node: node.estimate)
         self.data.remove(result)
         return result
 
@@ -59,8 +77,6 @@ class Astar(object):
         self.end = end
         self.seen = []  # list of visited nodes
         self.openlist = PriorityQueue()
-        start.parent = None
-        start.cost = 0
         start.estimate = self.heuristic(start)
         self.openlist.push(start)
 
@@ -75,8 +91,9 @@ class Astar(object):
         return self.end == node
 
     def solve(self):
+        """returns target node, traverse target.parent to reach start"""
         while self.openlist:
-            current, current_meta = self.openlist.pop()
+            current = self.openlist.pop()
             self.seen.append(current)  # do not visit again
             if self.is_solution(current):
                 return current
@@ -85,7 +102,7 @@ class Astar(object):
                     continue  # do not visit again
                 if n in self.openlist:
                     # update if we find a shorter path
-                    cost = current.cost + current.neighbours[n]
+                    cost = current.cost + current.weight(n)
                     if n.cost > cost:
                         self.update_node(n, current)
                 else:
@@ -94,5 +111,5 @@ class Astar(object):
 
     def update_node(self, node, parent):
         node.parent = parent
-        node.cost = parent.cost + parent.neighbours[node]
+        node.cost = parent.cost + parent.weight(node)
         node.estimate = node.cost + self.heuristic(node)
