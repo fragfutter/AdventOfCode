@@ -79,31 +79,35 @@ class Day(Advent):
                 return recipe
         raise Exception('unknown ingredient %s' % ingredient)
 
+    def stir(self, pantry, requests):
+        """process one request, update pantry, return consumed ore"""
+        wanted, ingredient = requests.pop(0)
+        # ore falls from heaven
+        if ingredient == 'ORE':
+            return wanted
+        if pantry[ingredient] >= wanted:
+            # consume pantry
+            pantry[ingredient] -= wanted
+            return 0
+        # not enough in the pantry
+        # consume what is there
+        wanted -= pantry[ingredient]
+        pantry[ingredient] = 0
+        # produce what is missing
+        recipe = self.cookbook(ingredient)
+        scale = (wanted - 1) // recipe[0][0] + 1  # scale up
+        pantry[ingredient] = recipe[0][0] * scale - wanted  # store leftover
+        # add required stuff
+        for source_amount, source_ingredient in recipe[1:]:
+            requests.append((source_amount * scale, source_ingredient))
+        return 0
+
     def solve1(self):
         ore = 0
-        required = [(1, 'FUEL')]
+        requests = [(1, 'FUEL')]
         pantry = defaultdict(lambda: 0)
-        while required:
-            wanted, ingredient = required.pop(0)
-            # ore falls from heaven
-            if ingredient == 'ORE':
-                ore += wanted
-                continue
-            if pantry[ingredient] >= wanted:
-                # consume pantry
-                pantry[ingredient] -= wanted
-                continue
-            # not enough in the pantry
-            # consume what is there
-            wanted -= pantry[ingredient]
-            pantry[ingredient] = 0
-            # produce what is missing
-            recipe = self.cookbook(ingredient)
-            scale = (wanted - 1) // recipe[0][0] + 1  # scale up
-            pantry[ingredient] = recipe[0][0] * scale - wanted  # store leftover
-            # add required stuff
-            for source_amount, source_ingredient in recipe[1:]:
-                required.append((source_amount * scale, source_ingredient))
+        while requests:
+            ore += stir(pantry, requests)
         self.minimum_ore = ore
         return ore
 
