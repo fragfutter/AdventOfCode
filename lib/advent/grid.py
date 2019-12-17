@@ -12,6 +12,9 @@ class Point(object):
     def __repr__(self):
         return '<Point %d, %d>' % (self.x, self.y)
 
+    def as_tuple(self):
+        return (self.x, self.y)
+
     def distance(self, other):
         """manhatten distance"""
         return \

@@ -87,6 +87,18 @@ class Turtle(object):
         """coordinates left of current position"""
         return self.direction.left.walk(self.position)
 
+    def right(self):
+        """coordinates right of current position"""
+        return self.direction.right.walk(self.position)
+
+    def ahead(self):
+        """coordinates ahead of current position"""
+        return self.direction.walk(self.position)
+
+    def behind(self):
+        """coordinates behin of current position"""
+        return self.direction.around.walk(self.position)
+
 
 if __name__ == '__main__':
     assert(N.left == W)
