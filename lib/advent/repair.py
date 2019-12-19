@@ -1,5 +1,3 @@
-import itertools
-
 class Placeholder(object):
     def __init__(self, value):
         self.value = value
@@ -58,10 +56,22 @@ def compress(data):
     # expand placeholders
     expanded = {}  # dictionary for fast lookup
     for p in placeholders:
-        value = [expanded.get(v, v) for v in p.value]
-        value = list(itertools.chain(*value))  # flatten nested list
+        value = []
+        for v in p.value:
+            v = expanded.get(v, v)  # expand
+            try:
+                value.extend(v)
+            except TypeError:
+                value.append(v)
         p.value = value
         expanded[p] = value
     # drop all placeholders not used in compressed data
     expanded = [x for x in expanded.keys() if x in data]
     return data, expanded
+
+
+if __name__ == '__main__':
+    data = ['x', 'a', 'b', 'c', 'a', 'b', 'c', 'y', 1, 2, 3, 1, 2, 3, 'z', 'a', 'b', 'c']
+    c, t = compress(data)
+    print(c)
+    print(t)
