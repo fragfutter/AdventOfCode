@@ -51,14 +51,10 @@ class Day(Advent):
 
         value = 0
         for group in result:
-            for key in group.keys():
-                if key == 'count':
-                    continue
+            for key in filter(lambda x: x != 'count', group.keys()):
                 if group[key] == group['count']:
                     value +=1
         return value
-
-        return sum([len(x) for x in result])
 
 
 Day.main()
