@@ -27,16 +27,27 @@ class Advent(object):
     seperator = re.compile('\s+')
 
     @classmethod
-    def main(cls, *args, **kwargs):
-        kwargs = {}
+    def find_input(cls, *args):
+        candidates = []
         try:
-            arg1 = sys.argv[1]
+            candidates.append(sys.argv[1])
         except:
-            arg1 = 'input.txt'
-        if os.path.isfile(arg1):
-            kwargs['filename'] = arg1
+            pass  # no input given
+        c = os.path.basename(sys.argv[0])
+        candidates.append(os.path.splitext(c)[0] + '.txt')
+        candidates.append('input.txt')
+        candidates.append('sample.txt')
+        for c in candidates:
+            if os.path.isfile(c):
+                return c
+
+    @classmethod
+    def main(cls, *args, **kwargs):
+        filename = cls.find_input(*args)
+        if filename:
+            kwargs['filename'] = filename
         else:
-            kwargs['data'] = arg1
+            kwargs['data'] = sys.argv[1]
         advent = cls(**kwargs)
         advent.solve()
 
