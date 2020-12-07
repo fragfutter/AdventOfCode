@@ -2,6 +2,7 @@
 
 from advent import Advent
 import re
+from collections import deque
 """
 """
 
@@ -47,20 +48,18 @@ class Day(Advent):
 
     def solve2(self):
         bagcount = {}  # name -> number of bags inside
-        queue = list(self.data.keys())  # all bags
+        queue = deque(self.data.keys())  # all bags
         while queue:
-            # iterate over a copy so we can modify it
-            for bag in queue[:]:
-                # check if we know all bags that must be inside
-                try:
-                    value = 0
-                    for count, contained in self.data[bag]:
-                        value += count + count * bagcount[contained]
-                    bagcount[bag] = value
-                    queue.remove(bag)
-                except KeyError:
-                    # one bag was unknown, check this later
-                    pass
+            bag = queue.popleft()  # take a bag
+            # check if we know all bags that must be inside
+            try:
+                value = 0
+                for count, contained in self.data[bag]:
+                    value += count + count * bagcount[contained]
+                bagcount[bag] = value
+            except KeyError:
+                # one bag was unknown, insert back into queue
+                queue.append(bag)
         return bagcount[self.MY_BAG]
 
 Day.main()
