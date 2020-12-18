@@ -5,69 +5,36 @@ from advent import Advent
 """
 """
 
-class Point(object):
-    def __init__(self, *coordinates):
-        self.coordinates = tuple(coordinates)
+def neighbours(coordinates):
+    def recursion(dimension):
+        if not dimension:
+            # final
+            yield ()
+            return
+        for outer in recursion(dimension - 1):
+            start = coordinates[dimension - 1] - 1
+            stop = coordinates[dimension - 1] + 1
+            for inner in range(start, stop + 1):
+                yield outer + (inner, )
 
-    def as_tuple(self):
-        return self.coordinates
-
-    def __repr__(self):
-        return str(self.as_tuple())
-
-    def __eq__(self, other):
-        return self.as_tuple() == other.as_tuple()
-
-    def __hash__(self):
-        return hash(self.as_tuple())
-
-    def dimensions(self):
-        return len(self.coordinates)
-
-    def neighbours_dimensions(self, dimension):
-        """yield neighbours for dimension"""
-        if dimension >= len(self.coordinates):
-            yield self
-            return  # terminate iteration
-        coordinates = list(self.coordinates)
-        for i in (-1, 0, 1):
-            coordinates[dimension] = i
-            point = Point(*coordinates)
-            for p in point.neighbours_dimensions(dimension + 1):
-                yield p
-
-    def neighbours(self):
-        def recursion(dimension):
-            if not dimension:
-                # final
-                yield ()
-                return
-            for outer in recursion(dimension - 1):
-                start = self.coordinates[dimension - 1] - 1
-                stop = self.coordinates[dimension - 1] + 1
-                for inner in range(start, stop + 1):
-                    coordinates = outer + (inner, )
-                    yield coordinates
-
-        for coordinates in recursion(self.dimensions()):
-            if coordinates != self.coordinates:
-                yield Point(*coordinates)
+    for c in recursion(len(coordinates)):
+        if c != coordinates:
+            yield c
 
 
 class Grid(object):
     def __init__(self, points=[]):
-        self.data = []
+        self.data = set()  # use a set, faster lookup (120 seconds -> 2 seconds)
         for point in points:
             self.activate(point)
 
     def activate(self, point):
-        if point not in self.data:
-            self.data.append(point)
+        self.data.add(point)  # no need to check no duplicates in sets
 
     def deactivate(self, point):
         try:
             self.data.remove(point)
-        except ValueError:
+        except KeyError:
             pass
 
     def iterate(self, offset=1):
@@ -77,19 +44,19 @@ class Grid(object):
                 yield ()
                 return
             for outer in recursion(dimension - 1):
-                start = min(map(lambda point: point.coordinates[dimension - 1], self.data)) - offset
-                stop  = max(map(lambda point: point.coordinates[dimension - 1], self.data)) + offset
+                values = [x[dimension - 1] for x in self.data]
+                start = min(values) - offset
+                stop = max(values) + offset
                 for inner in range(start, stop + 1):
-                    coordinates = outer + (inner, )
-                    yield coordinates
+                    yield outer + (inner, )
 
-        dimension = self.data[0].dimensions()
-        for coordinates in recursion(dimension):
-            yield Point(*coordinates)
+        # next(iter(self.data)) => first element of set
+        for coordinates in recursion(len(next(iter(self.data)))):
+            yield coordinates
 
     def count_neighbours(self, point):
         result = 0
-        for n in point.neighbours():
+        for n in neighbours(point):
             if n in self.data:
                 result += 1
         return result
@@ -104,15 +71,14 @@ class Day(Advent):
         for y, line in enumerate(self.data.split('\n')):
             for x, c in enumerate(line.strip()):
                 if c == '#':
-                    result.append(Point(x, y))
+                    result.append((x, y))
         self.data = result
 
     def solve_(self, dimensions):
         extension = (0, ) * (dimensions - 2)
         result = Grid()
-        for point in self.data:
-            coordinates = point.coordinates + extension
-            result.activate(Point(*coordinates))
+        for coordinates in self.data:
+            result.activate(coordinates + extension)
         for i in range(6):
             new = Grid()
             for point in result.iterate():
@@ -136,8 +102,7 @@ class Day(Advent):
         return self.solve_(3)
 
     def solve2(self):
-        import profile
-        profile.runctx('self.solve_(3)', globals(), locals())
+        return self.solve_(4)
 
 
 Day.main()
