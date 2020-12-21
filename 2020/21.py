@@ -24,8 +24,7 @@ class Day(Advent):
         self.data = result
         self.all_ingredients = all_ingredients
         self.all_allergenes = all_allergenes
-
-    def run(self):
+        # build a risk list, used in part1 and part2
         risk = {}  # allergene -> possible in ingredients
         # start: allergene can be in any of the ingredients
         for allergene in self.all_allergenes:
@@ -38,38 +37,38 @@ class Day(Advent):
             # the ingredient on the left, but we don't reduce the set
             for allergene in allergenes:
                 risk[allergene] = risk[allergene].intersection(ingredients)
-        # build a list off ingredients still candidate for allergene
-        possible_has_allergene = set()
-        for candidates in risk.values():
-            possible_has_allergene.update(candidates)
+        self.risk = risk
+
+    def solve1(self):
+        # take all ingredients
         save_ingredients = set(self.all_ingredients)
-        save_ingredients.difference_update(possible_has_allergene)
+        # remove all possible allergene containing ingredients
+        for candidates in self.risk.values():
+            save_ingredients.difference_update(candidates)
         # count ingredients
-        part1 = 0
+        result = 0
         for ingredients, _ in self.data:
-            part1 += len(save_ingredients.intersection(ingredients))
-        self.part1 = part1
-        ### part2
-        known = {}
-        work = deque([[a, list(i)] for a, i in risk.items()])
+            result += len(save_ingredients.intersection(ingredients))
+        return result
+
+    def solve2(self):
+        known = {}  # allergene -> ingredient  (1:1 mapping)
+        work = deque([[a, list(i)] for a, i in self.risk.items()])
         while work:
             allergene, candidates = work.popleft()
+            # remove all ingredients we already know
             for i in known.values():
                 if i in candidates:
                     candidates.remove(i)
             if len(candidates) == 1:
+                # if only one ingredient left it is the allergene
                 known[allergene] = candidates[0]
             else:
+                # otherwise we need to check again later
                 work.append([allergene, candidates])
-        part2 = [known[a] for a in sorted(known)]
-        self.part2 = ','.join(part2)
-
-    def solve1(self):
-        self.run()
-        return self.part1
-
-    def solve2(self):
-        return self.part2
+        # sorted by allergenes (keys)
+        result = [known[a] for a in sorted(known)]
+        return ','.join(result)
 
 
 Day.main()
