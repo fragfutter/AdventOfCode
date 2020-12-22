@@ -59,10 +59,10 @@ class Day(Advent):
                 logging.debug('-- Round %d (Game %d) --', turn, game)
                 logging.debug('Player 1 deck: %s', stack1)
                 logging.debug('Player 2 deck: %s', stack2)
-                key = (tuple(stack1), tuple(stack2))
+                # using a seperator instead of two tuples is slightly faster
+                key = tuple(stack1) + ('|', ) + tuple(stack2)
                 if key in seen:
-                    winner = 1
-                    return winner
+                    return 1
                 seen.add(key)
                 a = stack1.pop(0)
                 b = stack2.pop(0)
@@ -71,17 +71,11 @@ class Day(Advent):
                     winner = play(stack1[:a], stack2[:b], game + 1)
                 else:
                     # not enough cards determine winner by larger card
-                    if a > b:
-                        winner = 1
-                    else:
-                        winner = 2
-                assert(winner in (1, 2))
+                    winner = 1 if a > b else 2
                 if winner == 1:
-                    stack1.append(a)
-                    stack1.append(b)
+                    stack1.extend([a, b])
                 else:
-                    stack2.append(b)
-                    stack2.append(a)
+                    stack2.extend([b, a])
                 turn += 1
             # final winner is the stack still having cards
             if stack1:
