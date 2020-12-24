@@ -67,6 +67,9 @@ class Cube(HexCoordinates):
                 self.z == other.z
         return False
 
+    def __hash__(self):
+        return hash((self.x, self.y, self.z))
+
 
 class Hex(HexCoordinates):
     """
@@ -116,6 +119,9 @@ class Hex(HexCoordinates):
                 self.q == other.q and \
                 self.r == other.r
         return False
+
+    def __hash__(self):
+        return hash((self.q, self.r))
 
 
 def distance(a, b):
