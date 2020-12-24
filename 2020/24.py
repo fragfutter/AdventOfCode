@@ -69,34 +69,32 @@ class Day(Advent):
         return len(black)
 
     def solve2(self):
-        def size(grid):
-            q = max([abs(c.q) for c in grid])
-            r = max([abs(c.r) for c in grid])
-            return max(q, r) + 1
+        def coordinates(grid):
+            qs = [c.q for c in grid]
+            rs = [c.r for c in grid]
+            for q in range(min(qs) - 1, max(qs) + 2):
+                for r in range(min(rs) - 1, max(rs) + 2):
+                    yield (q, r)
 
 
         def day(black):
-            # running over a grid that is way too large
-            # but lazy, don't want to think about max/min coordinates
-            s = size(black)
             result = set()
-            for q in range(-s, s + 1):
-                for r in range(-s, s + 1):
-                    cube = Hex(q, r)
-                    # black neighbours
-                    n = sum([c in black for c in cube.neighbours()])
-                    if cube in black:
-                        # black
-                        if n == 0 or n > 2:
-                            pass  # becomes white
-                        else:
-                            result.add(cube)  # stays black
+            for q, r in coordinates(black):
+                cube = Hex(q, r)
+                # black neighbours
+                n = sum([c in black for c in cube.neighbours()])
+                if cube in black:
+                    # black
+                    if n == 0 or n > 2:
+                        pass  # becomes white
                     else:
-                        # white
-                        if n == 2:
-                            result.add(cube)  # becomes black
-                        else:
-                            pass  # stays white
+                        result.add(cube)  # stays black
+                else:
+                    # white
+                    if n == 2:
+                        result.add(cube)  # becomes black
+                    else:
+                        pass  # stays white
             return result
 
         black = self.black
